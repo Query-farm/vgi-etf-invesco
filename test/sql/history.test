@@ -1,0 +1,53 @@
+# name: test/sql/history.test
+# description: invesco fund_details / distributions / nav_history — schema + live invariants.
+# group: [sql]
+
+require-env VGI_TEST_WORKER
+
+statement ok
+ATTACH 'invesco' AS iv (TYPE vgi, LOCATION '${VGI_TEST_WORKER}');
+
+statement ok
+SET search_path='iv.main';
+
+# --- Schema (bind-only, deterministic). ---
+
+query T
+SELECT column_type FROM (DESCRIBE SELECT * FROM iv.fund_details('RSP')) WHERE column_name = 'pe_ratio';
+----
+DOUBLE
+
+query T
+SELECT column_type FROM (DESCRIBE SELECT * FROM iv.nav_history('RSP')) WHERE column_name = 'nav';
+----
+DOUBLE
+
+query T
+SELECT column_type FROM (DESCRIBE SELECT * FROM iv.distributions('RSP')) WHERE column_name = 'ex_date';
+----
+DATE
+
+# --- Live invariants (hit Invesco). ---
+
+# fund_details is a single-row snapshot naming the primary benchmark.
+query I
+SELECT (count(*) = 1 AND max(primary_benchmark) IS NOT NULL AND max(expense_ratio_percent) >= 0)::INT FROM iv.fund_details('RSP');
+----
+1
+
+# nav_history returns a NAV series with positive NAV since a start date.
+query I
+SELECT (count(*) > 10 AND min(nav) > 0)::INT FROM iv.nav_history('RSP', start_date := DATE '2025-01-01');
+----
+1
+
+# A non-date value for the DATE argument is a bind error (SQL enforces the type).
+statement error
+SELECT * FROM iv.nav_history('RSP', start_date := 'Jan 2026');
+----
+
+# RSP has a distribution history with non-negative per-share amounts.
+query I
+SELECT (count(*) > 0 AND min(amount_per_share) >= 0)::INT FROM iv.distributions('RSP');
+----
+1
