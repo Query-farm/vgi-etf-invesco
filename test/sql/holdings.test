@@ -51,8 +51,9 @@ SELECT (count(*) >= 1)::INT FROM (SELECT * FROM iv.holdings LIMIT 5);
 ----
 1
 
-# The backing scan function also works directly (pushdown).
+# The backing scan function also works directly (pushdown). It shares the `holdings` name with the
+# table; called WITH parens it resolves to the table function.
 query I
-SELECT (count(*) > 100)::INT FROM iv.holdings_scan() WHERE fund_ticker = 'RSP';
+SELECT (count(*) > 100)::INT FROM iv.holdings() WHERE fund_ticker = 'RSP';
 ----
 1

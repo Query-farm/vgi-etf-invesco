@@ -226,7 +226,11 @@ export function makeProductsScan(get: InvescoGet) {
 export function makeHoldingsScan(get: InvescoGet) {
   const schema = holdingsSchema();
   return defineTableFunction<Record<string, never>, Record<string, never>>({
-    name: "holdings_scan",
+    // Named to MATCH the `holdings` table it backs (not "holdings_scan"): a table function and a
+    // table can share a qualified name in DuckDB (the function is called with parens, the table
+    // without), and naming them alike is what lets the metadata linter see this listed, parameterless
+    // scan as the browsable `holdings` table rather than an orphan zero-arg function (VGI311).
+    name: "holdings",
     description:
       "Backing scan for the holdings table — prefer the `holdings` table. Detailed current fund " +
       "holdings, hive-partitioned by fund_ticker: filter WHERE fund_ticker = 'RSP' (or " +
@@ -291,8 +295,8 @@ export function makeHoldingsScan(get: InvescoGet) {
       }
     },
     examples: [
-      { sql: "SELECT ticker, name, weight_percent FROM invesco.main.holdings_scan() WHERE fund_ticker = 'RSP' ORDER BY weight_percent DESC LIMIT 10", description: "Top 10 holdings of RSP via the backing scan" },
-      { sql: "SELECT fund_ticker, count(*) FROM invesco.main.holdings_scan() WHERE fund_ticker IN ('RSP', 'SPHQ') GROUP BY fund_ticker", description: "Two partitions at once (fan-out)" },
+      { sql: "SELECT ticker, name, weight_percent FROM invesco.main.holdings() WHERE fund_ticker = 'RSP' ORDER BY weight_percent DESC LIMIT 10", description: "Top 10 holdings of RSP via the backing scan" },
+      { sql: "SELECT fund_ticker, count(*) FROM invesco.main.holdings() WHERE fund_ticker IN ('RSP', 'SPHQ') GROUP BY fund_ticker", description: "Two partitions at once (fan-out)" },
     ],
     tags: {
       "vgi.category": "holdings",
@@ -304,7 +308,7 @@ export function makeHoldingsScan(get: InvescoGet) {
         "Holdings are current-only (no historical as-of). weight_percent is in percent points " +
         "(0.33 = 0.33%); bond funds also fill coupon/maturity/rating.",
       "vgi.doc_md":
-        "## holdings_scan\n\n" +
+        "## holdings() backing scan\n\n" +
         "The backing scan for the **`holdings` table** — prefer the table. Hive-partitioned by " +
         "`fund_ticker`: filter `WHERE fund_ticker = 'RSP'` for one fund, or scan with no filter to " +
         "stream every fund (see the example queries). `fund_ticker` is distinct from the " +

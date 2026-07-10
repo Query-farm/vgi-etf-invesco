@@ -195,9 +195,9 @@ const CATALOG_TAGS: Record<string, string> = {
     },
     {
       name: "rsp_holdings_scan",
-      prompt: "Using the holdings backing scan, list a few RSP constituents by weight.",
-      check_sql: "SELECT count(*) > 0 FROM invesco.main.holdings_scan() WHERE fund_ticker = 'RSP'",
-      success_criteria: "The answer returns RSP constituents via holdings_scan() filtered by ticker.",
+      prompt: "Using the holdings() backing scan function, list a few RSP constituents by weight.",
+      check_sql: "SELECT count(*) > 0 FROM invesco.main.holdings() WHERE fund_ticker = 'RSP'",
+      success_criteria: "The answer returns RSP constituents via the holdings() backing scan function filtered by ticker.",
     },
     {
       name: "rsp_expense_ratio",
@@ -304,6 +304,11 @@ export function makeCatalog(
             arguments: new Arguments([], new Map()),
             // fund_ticker is always populated (the scan tags every row with its fund).
             notNull: ["fund_ticker"],
+            // Row identity within the current snapshot: a fund (fund_ticker) holds each security
+            // (cusip) once — Invesco publishes aggregated positions. Advisory only (like products'
+            // key): not enforced on a read-only scan, and cusip is null for the occasional
+            // non-CUSIP line (cash / FX), so treat it as the intended identity, not a guarantee.
+            primaryKey: [["fund_ticker", "cusip"]],
             // Hive partition key: fund_ticker. A WHERE fund_ticker = … / IN (…) filter is pushed
             // down to fetch just those funds; an unfiltered scan streams every fund (all
             // partitions). Invesco holdings are current-only — NO time travel.

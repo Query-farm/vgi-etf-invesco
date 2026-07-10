@@ -161,8 +161,9 @@ column (each row's own constituent ticker). Invesco reports a single effective d
 `sec_type`, `currency`, plus the fixed-income-only `coupon_percent`, `maturity_date` (DATE),
 `next_call_date` (DATE), and `rating`.
 
-> A backing `holdings_scan()` function is also exposed (it's what the table scans, and it's what
-> lets DuckDB push the `fund_ticker` filter) — prefer the `holdings` table.
+> A backing `holdings()` table function is also exposed under the same name as the table (it's what
+> the table scans, and being listed is what lets DuckDB push the `fund_ticker` filter). Called with
+> parens — `FROM invesco.holdings()` — it resolves to the scan; prefer the `holdings` table.
 
 ### fund_details — one-row characteristics snapshot
 

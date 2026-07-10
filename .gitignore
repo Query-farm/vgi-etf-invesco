@@ -4,3 +4,7 @@ dist/
 .env
 .DS_Store
 duckdb_unittest_tempdir/
+
+# vgi-lint --ai caches (dropped in cwd by review/sim)
+.vgi-review-cache.json
+.vgi-sim-cache.json
