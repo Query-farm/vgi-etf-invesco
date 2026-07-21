@@ -313,6 +313,14 @@ export function makeHoldingsScan(get: InvescoGet) {
         "`fund_ticker`: filter `WHERE fund_ticker = 'RSP'` for one fund, or scan with no filter to " +
         "stream every fund (see the example queries). `fund_ticker` is distinct from the " +
         "constituent `ticker` column. Holdings are current-only (no historical as-of).",
+      // Carry the same examples through the description-preserving example_queries tag: the VGI
+      // extension re-surfaces Meta.examples into duckdb_functions().examples as a bare SQL VARCHAR[]
+      // (descriptions dropped), so without this the descriptions are invisible to vgi-lint (VGI515).
+      // Byte-identical SQL to the `examples:` above; the linter dedups by normalized SQL.
+      "vgi.example_queries": JSON.stringify([
+        { description: "Top 10 holdings of RSP via the backing scan", sql: "SELECT ticker, name, weight_percent FROM invesco.main.holdings() WHERE fund_ticker = 'RSP' ORDER BY weight_percent DESC LIMIT 10" },
+        { description: "Two partitions at once (fan-out)", sql: "SELECT fund_ticker, count(*) FROM invesco.main.holdings() WHERE fund_ticker IN ('RSP', 'SPHQ') GROUP BY fund_ticker" },
+      ]),
       "vgi.result_columns_schema": resultColumnsSchema(holdingsSchema(), HOLDINGS_SCAN_DESCS),
     },
   });
@@ -375,6 +383,12 @@ export function makeFundDetailsFunction(get: InvescoGet) {
         "benchmark comparison). Percent columns are in percent points; `pe_ratio`, " +
         "`forward_pe_ratio`, and `pb_ratio` are ratios.\n\n" +
         "It returns exactly one row; for the whole lineup use `products` (see the example queries).",
+      // example_queries carries the descriptions vgi-lint needs (native examples drop them) — VGI515.
+      "vgi.example_queries": JSON.stringify([
+        { description: "Key characteristics for RSP", sql: "SELECT ticker, primary_benchmark, pe_ratio, expense_ratio_percent FROM invesco.main.fund_details('RSP')" },
+        { description: "Size, holdings count, and 30-day SEC yield", sql: "SELECT ticker, net_assets, num_holdings, sec_yield_30day_percent FROM invesco.main.fund_details('RSP')" },
+        { description: "1-year fund return vs its benchmark", sql: "SELECT return_1y_percent, benchmark_return_1y_percent FROM invesco.main.fund_details('RSP')" },
+      ]),
       "vgi.result_columns_schema": resultColumnsSchema(fundDetailsSchema(), FUND_DETAILS_DESCS),
     },
   });
@@ -445,6 +459,11 @@ export function makeDistributionsFunction(get: InvescoGet) {
         "Distribution history, one row per distribution. Amounts are **per-share** dollars (not " +
         "percentages), with the ordinary-income / capital-gain / return-of-capital breakdown. Bound " +
         "the ex-date range with `start_date`/`end_date` (see the example queries).",
+      // example_queries carries the descriptions vgi-lint needs (native examples drop them) — VGI515.
+      "vgi.example_queries": JSON.stringify([
+        { description: "Recent RSP distributions", sql: "SELECT ex_date, amount_per_share FROM invesco.main.distributions('RSP') ORDER BY ex_date DESC LIMIT 8" },
+        { description: "Total distributions since a start date", sql: "SELECT sum(amount_per_share) AS total FROM invesco.main.distributions('RSP', start_date := DATE '2025-01-01')" },
+      ]),
       "vgi.result_columns_schema": resultColumnsSchema(distributionsSchema(), DISTRIBUTIONS_DESCS),
     },
   });
@@ -512,6 +531,11 @@ export function makeNavHistoryFunction(get: InvescoGet) {
         "Daily NAV history back to inception, one row per valuation day. Bound the range with " +
         "`start_date`/`end_date` (inclusive SQL `DATE`s; omit for the full history). This is " +
         "**fund NAV**, not an intraday candle series (see the example queries).",
+      // example_queries carries the descriptions vgi-lint needs (native examples drop them) — VGI515.
+      "vgi.example_queries": JSON.stringify([
+        { description: "Daily RSP NAV since a start date", sql: "SELECT as_of_date, nav FROM invesco.main.nav_history('RSP', start_date := DATE '2025-01-01') ORDER BY as_of_date DESC" },
+        { description: "NAV range over a bounded window", sql: "SELECT min(nav), max(nav) FROM invesco.main.nav_history('RSP', start_date := DATE '2025-01-01', end_date := DATE '2025-12-31')" },
+      ]),
       "vgi.result_columns_schema": resultColumnsSchema(navHistorySchema(), NAV_HISTORY_DESCS),
     },
   });

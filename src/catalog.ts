@@ -254,6 +254,7 @@ const SCHEMA_TAGS: Record<string, string> = {
     { description: "Cheapest Invesco ETFs by expense ratio", sql: "SELECT ticker, name, expense_ratio_percent FROM invesco.main.products ORDER BY expense_ratio_percent LIMIT 10" },
     { description: "Top holdings of RSP", sql: "SELECT ticker, name, weight_percent FROM invesco.main.holdings WHERE fund_ticker = 'RSP' ORDER BY weight_percent DESC LIMIT 10" },
     { description: "Recent NAV history for RSP", sql: "SELECT as_of_date, nav FROM invesco.main.nav_history('RSP', start_date := DATE '2025-01-01') ORDER BY as_of_date DESC" },
+    { description: "Screen the catalog, then drill into a fund's holdings (join on fund_ticker = products.ticker)", sql: "SELECT p.ticker, p.name, p.expense_ratio_percent, h.ticker AS holding, h.weight_percent FROM invesco.main.products p JOIN invesco.main.holdings h ON h.fund_ticker = p.ticker WHERE p.ticker = 'RSP' ORDER BY h.weight_percent DESC LIMIT 10" },
   ]),
 };
 
