@@ -16,6 +16,13 @@
 //
 // The final scan hits Invesco live (like the haybarn live-invariant asserts) — fine for an egress
 // connector. Schema columns are deterministic; only row content is live.
+//
+// LIVE GATE (INVESCO_LIVE — mirrors WT_LIVE in vgi-etf-wisdomtree): since Oct 2026 Invesco's
+// Fastly edge answers HTTP 406 to non-browser HTTP clients (curl, Bun fetch) on a cache miss while
+// a real browser gets 200 for the identical URL and headers — so whether the live scan can pass
+// depends on the caller's client fingerprint / IP, not on this worker's code. The live test runs
+// when INVESCO_LIVE=1 (forced — a failure is reported), is skipped when INVESCO_LIVE=0, and when
+// unset it probes the catalog URL with the worker's OWN client and runs only if Invesco answers.
 
 import { test, expect, beforeAll, afterAll } from "bun:test";
 import { createVgiFetch } from "@query-farm/vgi/worker-cf";
@@ -30,12 +37,26 @@ import {
 } from "../src/functions.js";
 import { makeCatalog } from "../src/catalog.js";
 import { makeInvescoGet } from "../src/client.js";
+import { SEARCH_URL } from "../src/invesco.js";
 import pkg from "../package.json" with { type: "json" };
 
 const PREFIX = "/vgi";
 // Static 32-byte HMAC key — the HTTP handler signs state tokens with it. Any stable secret works;
 // it never leaves this process.
 const SIGNING_KEY = new Uint8Array(32).fill(7);
+
+async function invescoReachable(): Promise<boolean> {
+  try {
+    await makeInvescoGet(globalThis.fetch, { catalogCacheMs: 0, maxRetries: 1 })(SEARCH_URL);
+    return true;
+  } catch (e) {
+    console.warn(`INVESCO_LIVE unset and Invesco unreachable — skipping the live scan: ${String(e).slice(0, 160)}`);
+    return false;
+  }
+}
+
+const LIVE_ENV = process.env.INVESCO_LIVE;
+const LIVE = LIVE_ENV === "1" ? true : LIVE_ENV === "0" ? false : await invescoReachable();
 
 let server: ReturnType<typeof Bun.serve>;
 let baseUrl: string;
@@ -103,7 +124,7 @@ test("the functions and the products/holdings tables are exposed over HTTP", asy
   }
 });
 
-test("products table scan round-trips over HTTP (live)", async () => {
+test.skipIf(!LIVE)("products table scan round-trips over HTTP (live)", async () => {
   const rpc = httpConnect(baseUrl, { prefix: PREFIX });
   try {
     const client = new VgiClient(rpc);

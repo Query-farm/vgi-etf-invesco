@@ -161,6 +161,7 @@ cached catalog fetch to resolve; the holdings scan resolves in bulk in `onInit`.
 ```bash
 bun install
 bun test            # unit tests: SDK-free driver + Arrow batch builders + live HTTP-transport E2E
+                    # (live scan gated on INVESCO_LIVE: 1 = force, 0 = skip, unset = probe Invesco)
 bun run typecheck   # own-source only; scripts/typecheck.sh filters node_modules errors
 ./run_tests.sh      # haybarn SQLLogic E2E: worker under real DuckDB + community vgi ext
 ```
