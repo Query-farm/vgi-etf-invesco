@@ -185,7 +185,8 @@ Typecheck must be a `bash scripts/typecheck.sh` file (not an inline package.json
   worker's own functions (VGI173 — describe purpose/concepts instead); argument docs must NOT
   restate the data type (VGI313 — the range docs say "ex-day range", never the DATE type); numeric
   column comments should state a unit/definition (VGI131); every function needs an agent test task
-  (VGI520 — all are covered in `catalog.ts` `vgi.agent_test_tasks`).
+  (VGI520 — all are covered in `catalog.ts` `vgi.agent_test_tasks`); the tag publishes only `name` + `prompt` — grader fields
+  (`check_sql`, `success_criteria`) live in the private root sidecar `vgi-agent-tests.yaml` (VGI416).
 - Don't add a secret type; this worker is keyless by design.
 - Don't add time travel to `holdings` — Invesco has no historical as-of. This is the deliberate
   structural difference from vgi-etf-ishares.

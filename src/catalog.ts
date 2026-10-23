@@ -176,52 +176,37 @@ const CATALOG_TAGS: Record<string, string> = {
       sql: "SELECT ticker, name, weight_percent FROM invesco.main.holdings WHERE fund_ticker = 'RSP' ORDER BY weight_percent DESC LIMIT 5",
     },
   ]),
-  // Agent-suitability suite (catalog only). Each task carries a deterministic check_sql that
-  // asserts specific ground truth; reference_sql is omitted (live data + free-form analyst
-  // queries won't reproduce an exact result set). success_criteria records what a correct answer
-  // looks like for the LLM judge.
+  // The agent-suitability suite (catalog only). The published tag carries ONLY `name` +
+  // `prompt` — the grader fields (check_sql, success_criteria) live in the private sidecar
+  // vgi-agent-tests.yaml, keyed by name, so the analyst agent never sees them (VGI416).
   "vgi.agent_test_tasks": JSON.stringify([
     {
       name: "rsp_exists",
       prompt: "Does Invesco offer an ETF with the ticker RSP, and what is it called?",
-      check_sql: "SELECT count(*) > 0 FROM invesco.main.products WHERE ticker = 'RSP'",
-      success_criteria: "The answer confirms RSP is the Invesco S&P 500 Equal Weight ETF, found via the products table.",
     },
     {
       name: "rsp_top_holding",
       prompt: "What is the single largest holding of the Invesco S&P 500 Equal Weight ETF (RSP) right now?",
-      check_sql: "SELECT count(*) > 0 FROM invesco.main.holdings WHERE fund_ticker = 'RSP'",
-      success_criteria: "The answer names RSP's top holding by weight, obtained from the holdings table.",
     },
     {
       name: "rsp_holdings_scan",
       prompt: "Using the holdings() backing scan function, list a few RSP constituents by weight.",
-      check_sql: "SELECT count(*) > 0 FROM invesco.main.holdings() WHERE fund_ticker = 'RSP'",
-      success_criteria: "The answer returns RSP constituents via the holdings() backing scan function filtered by ticker.",
     },
     {
       name: "rsp_expense_ratio",
       prompt: "What is the expense ratio of the Invesco S&P 500 Equal Weight ETF (RSP)?",
-      check_sql: "SELECT count(*) > 0 FROM invesco.main.products WHERE ticker = 'RSP' AND expense_ratio_percent IS NOT NULL",
-      success_criteria: "The answer reports RSP's expense ratio (a small percentage) from the products table.",
     },
     {
       name: "rsp_benchmark",
       prompt: "Which benchmark does the Invesco S&P 500 Equal Weight ETF (RSP) track, and what is its P/E ratio?",
-      check_sql: "SELECT count(*) > 0 FROM invesco.main.fund_details('RSP') WHERE primary_benchmark IS NOT NULL",
-      success_criteria: "The answer names RSP's primary benchmark (the S&P 500 Equal Weight Index) from the fund_details function.",
     },
     {
       name: "rsp_nav_history",
       prompt: "What has the Invesco S&P 500 Equal Weight ETF's (RSP) NAV done since the start of 2025?",
-      check_sql: "SELECT count(*) > 0 FROM invesco.main.nav_history('RSP', start_date := DATE '2025-01-01') WHERE nav > 0",
-      success_criteria: "The answer summarizes RSP's NAV over the period, obtained from the nav_history function.",
     },
     {
       name: "rsp_last_distribution",
       prompt: "When did the Invesco S&P 500 Equal Weight ETF (RSP) most recently pay a distribution, and how much?",
-      check_sql: "SELECT count(*) > 0 FROM invesco.main.distributions('RSP')",
-      success_criteria: "The answer gives RSP's most recent distribution (ex date and per-share amount) from the distributions function.",
     },
   ]),
 };

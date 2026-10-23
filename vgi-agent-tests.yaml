@@ -1,0 +1,36 @@
+# Private grader sidecar for `vgi-lint simulate` (and `lint`'s VGI520 coverage). The worker
+# publishes only task names + prompts in `vgi.agent_test_tasks` (src/catalog.ts); these
+# grader fields are keyed by that name and never sent to the analyst agent.
+#
+# Agent-suitability suite (catalog only). Each task carries a deterministic check_sql that
+# asserts specific ground truth; reference_sql is omitted (live data + free-form analyst
+# queries won't reproduce an exact result set). success_criteria records what a correct answer
+# looks like for the LLM judge.
+tasks:
+  - name: "rsp_exists"
+    check_sql: "SELECT count(*) > 0 FROM invesco.main.products WHERE ticker = 'RSP'"
+    success_criteria: "The answer confirms RSP is the Invesco S&P 500 Equal Weight ETF, found via the products table."
+
+  - name: "rsp_top_holding"
+    check_sql: "SELECT count(*) > 0 FROM invesco.main.holdings WHERE fund_ticker = 'RSP'"
+    success_criteria: "The answer names RSP's top holding by weight, obtained from the holdings table."
+
+  - name: "rsp_holdings_scan"
+    check_sql: "SELECT count(*) > 0 FROM invesco.main.holdings() WHERE fund_ticker = 'RSP'"
+    success_criteria: "The answer returns RSP constituents via the holdings() backing scan function filtered by ticker."
+
+  - name: "rsp_expense_ratio"
+    check_sql: "SELECT count(*) > 0 FROM invesco.main.products WHERE ticker = 'RSP' AND expense_ratio_percent IS NOT NULL"
+    success_criteria: "The answer reports RSP's expense ratio (a small percentage) from the products table."
+
+  - name: "rsp_benchmark"
+    check_sql: "SELECT count(*) > 0 FROM invesco.main.fund_details('RSP') WHERE primary_benchmark IS NOT NULL"
+    success_criteria: "The answer names RSP's primary benchmark (the S&P 500 Equal Weight Index) from the fund_details function."
+
+  - name: "rsp_nav_history"
+    check_sql: "SELECT count(*) > 0 FROM invesco.main.nav_history('RSP', start_date := DATE '2025-01-01') WHERE nav > 0"
+    success_criteria: "The answer summarizes RSP's NAV over the period, obtained from the nav_history function."
+
+  - name: "rsp_last_distribution"
+    check_sql: "SELECT count(*) > 0 FROM invesco.main.distributions('RSP')"
+    success_criteria: "The answer gives RSP's most recent distribution (ex date and per-share amount) from the distributions function."
