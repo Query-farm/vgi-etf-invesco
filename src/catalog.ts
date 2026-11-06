@@ -7,7 +7,7 @@
 // (invesco.main.<fn>) so it binds/runs when the catalog is attached.
 
 import type { CatalogDescriptor, VgiFunction } from "@query-farm/vgi";
-import { Arguments } from "@query-farm/vgi";
+import { Arguments, constraintRecord } from "@query-farm/vgi";
 import { productsSchema, holdingsSchema, resultColumnsSchema } from "./schema.js";
 
 const REPO = "https://github.com/Query-farm/vgi-etf-invesco";
@@ -274,8 +274,15 @@ export function makeCatalog(
             name: "products",
             function: productsScan,
             arguments: new Arguments([], new Map()),
-            // Each fund has a unique CUSIP (advisory — not enforced on scan).
-            primaryKey: [["cusip"]],
+            // One row per exchange ticker: vgi.v3 serves key records as ENFORCED engine facts, and
+            // parseProducts drops ticker-less docs and repeated tickers, so ticker is a guaranteed
+            // key (cusip is not: the catalog does not promise a non-null, unique CUSIP per doc).
+            constraints: [
+              constraintRecord({
+                schemaPath: ["main"], table: "products", id: "products.pk",
+                kind: "PRIMARY_KEY", columns: [["ticker"]], enforcement: "ENFORCED", validation: "ALL_ROWS",
+              }),
+            ],
             // The Invesco US ETF lineup is ~245 funds; headroom to ~400.
             inlinedCardinality: { estimate: 245n, max: 400n },
             comment:
@@ -288,13 +295,15 @@ export function makeCatalog(
             name: "holdings",
             function: holdingsScan,
             arguments: new Arguments([], new Map()),
-            // fund_ticker is always populated (the scan tags every row with its fund).
-            notNull: ["fund_ticker"],
-            // Row identity within the current snapshot: a fund (fund_ticker) holds each security
-            // (cusip) once — Invesco publishes aggregated positions. Advisory only (like products'
-            // key): not enforced on a read-only scan, and cusip is null for the occasional
-            // non-CUSIP line (cash / FX), so treat it as the intended identity, not a guarantee.
-            primaryKey: [["fund_ticker", "cusip"]],
+            // fund_ticker is always populated (the scan tags every row with its fund). No PRIMARY
+            // KEY: vgi.v3 serves key records as ENFORCED engine facts, and the old advisory
+            // (fund_ticker, cusip) key does not hold — cusip is null on non-CUSIP cash / FX lines.
+            constraints: [
+              constraintRecord({
+                schemaPath: ["main"], table: "holdings", id: "holdings.fund_ticker.not_null",
+                kind: "NOT_NULL", columns: [["fund_ticker"]], enforcement: "ENFORCED", validation: "ALL_ROWS",
+              }),
+            ],
             // Hive partition key: fund_ticker. A WHERE fund_ticker = … / IN (…) filter is pushed
             // down to fetch just those funds; an unfiltered scan streams every fund (all
             // partitions). Invesco holdings are current-only — NO time travel.

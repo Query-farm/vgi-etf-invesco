@@ -238,10 +238,13 @@ export function parseProducts(json: unknown, ticker = ""): ProductRow[] {
   if (!Array.isArray(docs)) return [];
   const wantTicker = ticker.trim().toUpperCase();
   const rows: ProductRow[] = [];
+  // One row per ticker (the products table's PRIMARY KEY, an enforced fact under vgi.v3).
+  const seen = new Set<string>();
   for (const doc of docs) {
     const row = parseProductDoc(doc);
-    if (!row || !row.ticker) continue;
+    if (!row || !row.ticker || seen.has(row.ticker)) continue;
     if (wantTicker && row.ticker !== wantTicker) continue;
+    seen.add(row.ticker);
     rows.push(row);
   }
   return rows;

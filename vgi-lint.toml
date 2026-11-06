@@ -2,3 +2,8 @@
 select = ["ALL"]
 fail_on = "info"
 
+
+[tool.vgi-lint-check.per_object]
+"invesco.main.holdings" = { ignore = [
+  { code = "VGI807", kind = "domain-exemption", reason = "no guaranteed-unique non-null key in Invesco holdings (cusip is null on non-CUSIP cash/FX lines); vgi.v3 PKs are enforced facts" },
+] }

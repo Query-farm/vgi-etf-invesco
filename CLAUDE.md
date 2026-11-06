@@ -27,8 +27,8 @@ carries them). Hence a visible backing-scan function is unavoidable. To keep it 
 (orphan parameterless table function) it is **named `holdings`, the same name as the table** — a
 table function and a table can coexist under one qualified name (the function is called with parens),
 and the metadata linter then treats the listed scan as the browsable `holdings` table. So there is
-NO `vgi-lint.toml` ignore list: `holdings` clears VGI311 by the name match, and holdings carries an
-advisory composite key `(fund_ticker, cusip)` for VGI807.
+no VGI311 ignore: `holdings` clears VGI311 by the name match. (holdings has no primary key under
+vgi.v3, so `vgi-lint.toml` carries one per-object VGI807 domain exemption for it.)
 
 ## `holdings` — hive-partitioned by `fund_ticker`, CURRENT-only (NO time travel)
 
@@ -54,12 +54,13 @@ streams every fund** (one partition per fund). Mechanics (mirror iShares'/vangua
   intentional difference from vgi-etf-ishares. The source's effective date is surfaced as the
   `as_of_date` output column.
 - **`fund_ticker` is a SEPARATE column from `ticker`** — `ticker` is the CONSTITUENT's own ticker;
-  `fund_ticker` is the requested fund ticker, upper-cased, on every row. Constraints: `products`
-  advisory PK `[cusip]`, `holdings` advisory composite PK `[fund_ticker, cusip]` + `notNull
-  [fund_ticker]` (advisory PKs are NOT enforced on scan; cusip is null for the rare non-CUSIP cash/FX
-  line, so the composite key is the intended per-fund security identity, not a hard guarantee).
-  No cross-table FK (ticker/cusip/isin/sedol recur with different meanings). No `vgi-lint.toml`
-  ignore list — every rule is satisfied, not suppressed.
+  `fund_ticker` is the requested fund ticker, upper-cased, on every row. Constraints are vgi.v3
+  canonical `constraintRecord()` records, which DuckDB takes as ENFORCED engine facts, so each must
+  hold on every emitted row: `products` PK `[ticker]` (parseProducts drops ticker-less docs and
+  repeated tickers) and `holdings` NOT NULL `fund_ticker`. `holdings` has NO primary key — cusip is
+  null on non-CUSIP cash/FX lines, so the old advisory `(fund_ticker, cusip)` key would be false;
+  `vgi-lint.toml` waives VGI807 for holdings only (per-object domain exemption). No cross-table FK
+  (ticker/cusip/isin/sedol recur with different meanings).
 
 ## Architecture (keep this separation)
 

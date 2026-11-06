@@ -75,6 +75,13 @@ test("parseProducts narrows to one ticker (case-insensitive)", () => {
   expect(parseProducts(catalogEnvelope(), "ZZZZ")).toEqual([]);
 });
 
+test("parseProducts emits one row per ticker (the products PRIMARY KEY)", () => {
+  const docs = [{ ticker: ["RSP"], cusip: ["A"] }, { ticker: ["rsp"], cusip: ["B"] }, { cusip: ["C"] }];
+  const rows = parseProducts({ response: { docs } });
+  expect(rows.map((r) => r.ticker)).toEqual(["RSP"]);
+  expect(rows[0]!.cusip).toBe("A");
+});
+
 test("parseProducts tolerates junk without throwing", () => {
   expect(parseProducts(null)).toEqual([]);
   expect(parseProducts({ x: 1 })).toEqual([]);
