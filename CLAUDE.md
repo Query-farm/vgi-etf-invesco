@@ -71,7 +71,7 @@ streams every fund** (one partition per fund). Mechanics (mirror iShares'/vangua
   (null = fund not found) rather than throwing; `functions.ts` turns null into a typed
   `ArgumentValidationError`. Solr multi-valued fields can arrive as 1-element arrays → `firstOf()`.
 - **`src/client.ts` — the only network module.** `makeInvescoGet()` returns the real `get`. Beyond
-  `fetch` it: (1) sets the browser-like User-Agent + `Referer: https://www.invesco.com/` Invesco
+  `fetch` it: (1) sets an identifying (non-browser) User-Agent + `Referer: https://www.invesco.com/` Invesco
   requires (the default fetch UA is rejected), (2) **retries 5xx** with backoff — the Fastly/Varnish
   edge intermittently 503s on a cold cache node (verified against `fundCharacteristics`); a client
   error (4xx) is terminal, and (3) memoizes the one `/product/search` catalog URL for 24 h (it backs
