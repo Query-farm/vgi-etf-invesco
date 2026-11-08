@@ -3,7 +3,7 @@
 // an injected fetch (call-counting), an injected clock, and an injected (instant) sleep. No network.
 
 import { test, expect } from "bun:test";
-import { makeInvescoGet } from "../src/client.js";
+import { makeInvescoGet, rotateQuery } from "../src/client.js";
 import { SEARCH_URL, holdingsUrl } from "../src/invesco.js";
 
 /** A fake fetch that counts calls and returns a canned JSON body. */
@@ -117,4 +117,38 @@ test("a failed catalog fetch is evicted so the next call retries", async () => {
   const ok = await get(SEARCH_URL); // cache was evicted → retries and succeeds
   expect(ok).toEqual({ ok: 1 });
   expect(calls.length).toBe(2);
+});
+
+test("a cached 406 is retried under a rotated (re-keyed) URL", async () => {
+  const calls: string[] = [];
+  const impl = (async (url: string) => {
+    calls.push(url);
+    if (url === SEARCH_URL) {
+      return { ok: false, status: 406, json: async () => ({}), text: async () => "" } as unknown as Response;
+    }
+    return { ok: true, status: 200, json: async () => ({ ok: 1 }), text: async () => "" } as unknown as Response;
+  }) as unknown as typeof globalThis.fetch;
+  const get = makeInvescoGet(impl, { sleep: noSleep });
+  expect(await get(SEARCH_URL)).toEqual({ ok: 1 });
+  expect(calls.length).toBe(2);
+  expect(calls[1]).not.toBe(SEARCH_URL);
+  const params = (u: string) => u.split("?")[1]!.split("&").sort();
+  expect(params(calls[1]!)).toEqual(params(SEARCH_URL));
+});
+
+test("a persistent 406 throws after trying each rotation", async () => {
+  const calls: string[] = [];
+  const impl = (async (url: string) => {
+    calls.push(url);
+    return { ok: false, status: 406, json: async () => ({}), text: async () => "" } as unknown as Response;
+  }) as unknown as typeof globalThis.fetch;
+  const get = makeInvescoGet(impl, { sleep: noSleep, maxRetries: 2 });
+  await expect(get(HOLDINGS_URL)).rejects.toThrow(/HTTP 406/);
+  expect(new Set(calls).size).toBe(calls.length); // every attempt used a distinct cache key
+});
+
+test("rotateQuery keeps the parameters and moves the first to the end", () => {
+  expect(rotateQuery("https://x/y?a=1&b=2&c=3")).toBe("https://x/y?b=2&c=3&a=1");
+  expect(rotateQuery("https://x/y?a=1")).toBe("https://x/y?a=1");
+  expect(rotateQuery("https://x/y")).toBe("https://x/y");
 });

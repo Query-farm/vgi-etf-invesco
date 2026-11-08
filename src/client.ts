@@ -9,6 +9,10 @@
 //   • Transient 503s. The Fastly/Varnish edge intermittently returns 503 on a cold cache node; a
 //     short retry with backoff turns those into 200s (verified against the fundCharacteristics
 //     resource). So the client retries idempotent GETs on 5xx.
+//   • Cached 406s. The edge WAF intermittently answers a request with an empty 406, and Fastly
+//     CACHES that 406 under the exact URL (x-cache: HIT), so every client gets it until it
+//     expires. A 406 is retried with the query parameters rotated: the same request to the
+//     origin, but a different cache key, which skips the poisoned entry.
 //
 // CATALOG CACHE: the /product/search catalog backs both `products` and every ticker→CUSIP
 // resolution, and it changes at most once a day. So the client memoizes just that one URL with a
@@ -42,6 +46,19 @@ export interface InvescoClientOptions {
 }
 
 /**
+ * The same URL with its query parameters rotated one place (first moves to last). The origin
+ * sees an identical request, but a CDN keyed on the full URL sees a new cache key. Returns the
+ * input unchanged when there are fewer than two parameters.
+ */
+export function rotateQuery(url: string): string {
+  const q = url.indexOf("?");
+  if (q < 0) return url;
+  const parts = url.slice(q + 1).split("&");
+  if (parts.length < 2) return url;
+  return `${url.slice(0, q)}?${[...parts.slice(1), parts[0]].join("&")}`;
+}
+
+/**
  * Build the injectable `get(url) => parsed JSON` the table functions call. `fetchImpl` defaults
  * to the platform fetch; pass one in for Cloudflare or to stub the network. The /product/search
  * catalog response is memoized for `catalogCacheMs` (default 24 h); 5xx responses are retried.
@@ -58,8 +75,9 @@ export function makeInvescoGet(
 
   const rawGet = async (url: string): Promise<unknown> => {
     let lastBody = "";
+    let target = url;
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
-      const res = await fetchImpl(url, {
+      const res = await fetchImpl(target, {
         headers: {
           "User-Agent": UA,
           Accept: "application/json,*/*",
@@ -68,6 +86,14 @@ export function makeInvescoGet(
       });
       if (res.ok) return res.json();
       lastBody = await res.text().catch(() => "");
+      // A cached WAF 406: re-ask under a different cache key (same params, rotated order).
+      if (res.status === 406 && attempt < maxRetries) {
+        const next = rotateQuery(target);
+        if (next !== url) {
+          target = next;
+          continue;
+        }
+      }
       // Retry only transient server errors (the edge's 503s); client errors are terminal.
       if (res.status >= 500 && attempt < maxRetries) {
         await sleep(250 * (attempt + 1));
