@@ -101,7 +101,7 @@ which is JS-app / WAF-walled). All need only the browser User-Agent + Referer:
 
 1. **Catalog / resolver** — `GET /product/search?fq=countryCode:"US"&fq=language:"en_us"&
    fq=accountType:"ETF"&fq=contentType:"Product"&fq=shareClassStatus:"open"&q=_suggest_:*&fl=…&
-   rows=2000&start=0`. A Solr envelope `{response:{numFound, docs:[…]}}`; ~245 ETF docs. Per doc:
+   rows=1000&start=0`. A Solr envelope `{response:{numFound, docs:[…]}}`; ~245 ETF docs. Per doc:
    `ticker, cusip, isin, sedol, accountName/title, assetClass/assetSubClass/assetSubSubClass,
    investmentMethod (Passive/Active), strategy, umbrella, distributionFrequency, baseCurrency,
    bloombergTicker, region, inceptionDate ("YYYY-MM-DD"), totalExpenseRatio/netExpenseRatio (string

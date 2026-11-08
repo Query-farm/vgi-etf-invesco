@@ -35,12 +35,15 @@ const SEARCH_FIELDS = [
   "investmentMethod", "baseCurrency", "region", "url", "factsheet",
 ].join(",");
 
-/** The US ETF product catalog: one Solr doc per open ETF share class. Backs products + resolveFund. */
+/**
+ * The US ETF product catalog: one Solr doc per open ETF share class. Backs products + resolveFund.
+ * ~250 docs, so rows=1000 is one page. (The rows=2000 URL holds a cached 406 at the edge.)
+ */
 export const SEARCH_URL =
   `${INVESCO_HOST}/product/search` +
   `?fq=countryCode:%22US%22&fq=language:%22en_us%22&fq=accountType:%22ETF%22` +
   `&fq=contentType:%22Product%22&fq=shareClassStatus:%22open%22&q=_suggest_:*` +
-  `&fl=${encodeURIComponent(SEARCH_FIELDS)}&rows=2000&start=0`;
+  `&fl=${encodeURIComponent(SEARCH_FIELDS)}&rows=1000&start=0`;
 
 // ── per-fund cache resources (all keyed by CUSIP) ───────────────────────────────
 

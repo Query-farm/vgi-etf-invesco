@@ -4,8 +4,8 @@
 //
 // Invesco's public cache-CDN endpoints (dng-api.invesco.com) are keyless and un-gated, so there is
 // no login/token handshake. Two non-obvious requirements:
-//   • A browser-like User-Agent + a `Referer: https://www.invesco.com/` — the default fetch UA is
-//     rejected.
+//   • An identifying (non-browser) User-Agent + a `Referer: https://www.invesco.com/`. Since
+//     2026-11 a spoofed Chrome UA gets a 406 from the edge WAF.
 //   • Transient 503s. The Fastly/Varnish edge intermittently returns 503 on a cold cache node; a
 //     short retry with backoff turns those into 200s (verified against the fundCharacteristics
 //     resource). So the client retries idempotent GETs on 5xx.
@@ -23,9 +23,9 @@
 
 import type { InvescoGet } from "./functions.js";
 
-const UA =
-  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 " +
-  "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
+// An honest, identifying User-Agent. The edge WAF now answers a spoofed browser UA (a Chrome
+// string without Chrome's other request headers) with a 406, and that 406 gets cached.
+const UA = "vgi-etf-invesco (+https://github.com/Query-farm/vgi-etf-invesco)";
 
 /** Default catalog cache lifetime: 24 hours. */
 export const CATALOG_CACHE_MS = 24 * 60 * 60 * 1000;
