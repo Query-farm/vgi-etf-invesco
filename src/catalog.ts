@@ -130,6 +130,7 @@ const HOLDINGS_TABLE_TAGS: Record<string, string> = {
 /** Catalog-level tags: docs, discovery, provenance, and the agent-test suite. */
 const CATALOG_TAGS: Record<string, string> = {
   "vgi.title": "Invesco ETFs",
+  "vgi.subtitle": "Invesco US ETF facts, holdings, distributions, and NAV history as SQL tables.",
   "vgi.doc_llm":
     "Invesco US ETF data as SQL tables and table functions. Reach for it to screen the ETF " +
     "lineup on key facts (expense ratio, asset class, strategy), to inspect what a fund currently " +
