@@ -56,7 +56,7 @@ Prebuilt binaries cover macOS (Apple silicon), Linux (x86-64 and arm64). `github
 - **Docker** (the image bundles the worker; needs a container runtime):
 
   ```sql
-  ATTACH 'invesco' AS invesco (TYPE vgi, LOCATION 'docker://ghcr.io/query-farm/vgi-etf-invesco:0.2.0');
+  ATTACH 'invesco' AS invesco (TYPE vgi, LOCATION 'docker://ghcr.io/query-farm/vgi-etf-invesco:0.3.0');
   ```
 
 - **Manual download.** Download the archive for your platform from the [releases page](https://github.com/Query-farm/vgi-etf-invesco/releases), verify it against its `.sha256` file (a cosign `.cosign.bundle` is published alongside), unpack it, and set `LOCATION` to the path of the extracted worker executable.
@@ -64,7 +64,7 @@ Prebuilt binaries cover macOS (Apple silicon), Linux (x86-64 and arm64). `github
 - **HTTP server.** Run the image's HTTP transport yourself and attach it by URL:
 
   ```bash
-  docker run --rm -p 8000:8000 ghcr.io/query-farm/vgi-etf-invesco:0.2.0   # serves /health + the VGI RPC on :8000
+  docker run --rm -p 8000:8000 ghcr.io/query-farm/vgi-etf-invesco:0.3.0   # serves /health + the VGI RPC on :8000
   ```
 
   ```sql
