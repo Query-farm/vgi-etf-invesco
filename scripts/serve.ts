@@ -22,7 +22,7 @@ const { registry, catalogInterface } = makeWorkerParts();
 serveVgiWorker({
   name: "invesco",
   doc: "Invesco US ETF data: product catalog, current holdings, and per-fund history.",
-  version: "0.3.0",
+  version: "0.4.0",
   repositoryUrl: "https://github.com/Query-farm/vgi-etf-invesco",
   serverId: "vgi-etf-invesco",
   registry,
