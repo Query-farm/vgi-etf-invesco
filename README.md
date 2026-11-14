@@ -279,3 +279,7 @@ is not affiliated with or endorsed by Invesco Ltd.
 ## License
 
 MIT — Copyright 2026 Query Farm LLC · https://query.farm
+
+## Executed notebook
+
+Explore [reported holdings weight and concentration](notebooks/README.md), with recorded and live modes.

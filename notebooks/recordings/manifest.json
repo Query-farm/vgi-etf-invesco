@@ -1,0 +1,26 @@
+{
+  "source": "Invesco public product API",
+  "records": [
+    {
+      "file": "products.json",
+      "url": "https://dng-api.invesco.com/product/search?fq=countryCode:%22US%22&fq=language:%22en_us%22&fq=accountType:%22ETF%22&fq=contentType:%22Product%22&fq=shareClassStatus:%22open%22&q=_suggest_:*&fl=uniqueIdentifier%2Ccusip%2Ctitle%2CaccountName%2Cisin%2Csedol%2Cticker%2CbloombergTicker%2CassetClass%2CassetSubClass%2CassetSubSubClass%2CinceptionDate%2CtotalExpenseRatio%2CnetExpenseRatio%2CdistributionFrequency%2Cstrategy%2Cumbrella%2CinvestmentMethod%2CbaseCurrency%2Cregion%2Curl%2Cfactsheet&rows=1000&start=0",
+      "captured_at_utc": "2026-11-14T06:45:01.602Z",
+      "sha256": "91eeab1067558b1349a42bb846dfa56344e14bac8274db8fdf35c286af53f4ab",
+      "bytes": 252222
+    },
+    {
+      "file": "rsp.json",
+      "url": "https://dng-api.invesco.com/cache/v1/accounts/en_US/shareclasses/46137V357/holdings/fund?idType=cusip&productType=ETF",
+      "captured_at_utc": "2026-11-14T06:45:01.737Z",
+      "sha256": "6582190c9569651d08df18d612a41847e4e03fdb5c645cda8c88363df28942dc",
+      "bytes": 193926
+    },
+    {
+      "file": "sphq.json",
+      "url": "https://dng-api.invesco.com/cache/v1/accounts/en_US/shareclasses/46137V241/holdings/fund?idType=cusip&productType=ETF",
+      "captured_at_utc": "2026-11-14T06:45:01.800Z",
+      "sha256": "ae1d654581a0e5f2baa244439e06730efb77f89ce27bfb14b12ed1f18547a38a",
+      "bytes": 39779
+    }
+  ]
+}
