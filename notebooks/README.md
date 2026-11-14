@@ -68,7 +68,7 @@ Changing N selects a different prefix of the same ranked rows. Largest-N reporte
 
 Verified through published Haybarn on macOS arm64:
 
-- Default, `TOP_N=25` experiment and full live mode pass from a copied notebooks-only directory. Final runs took 2.4 s, 2.4 s and 2.5 s after the cold launcher check. Each has 13 code cells, seven SQL cells, two charts and ten SQL invariants. All six rendered charts were reviewed.
+- Default, `TOP_N=25` experiment and full live mode pass from a copied notebooks-only directory. Final runs took 2.4 s, 2.4 s and 2.5 s after the cold launcher check. Each has 13 code cells, six SQL cells, two charts and ten SQL invariants. All six rendered charts were reviewed.
 - Recorded source coverage: RSP 511 rows, including 506 positive / 2 negative / 2 zero / 1 missing-weight; SPHQ 105 rows, including 101 positive / 2 negative / 1 zero / 1 missing-weight. Both dates are 2026-11-12. The exact three-request replay audit passes.
 - Largest 10→25 rows: RSP 2.69→6.31 reported net-asset percentage points; SPHQ 44.20→70.11. Positive totals, whole curves and effective row counts (494.0 / 35.7) stay fixed. Live validation returned the same source dates and values at its run time; future runs can differ.
 - Three runner guards pass without overwriting the successful default. All three notebooks pass the structural checker; Ruff lint/format and shell syntax checks pass. Official image assets are unchanged.
