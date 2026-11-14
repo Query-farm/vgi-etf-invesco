@@ -34,3 +34,15 @@ tasks:
   - name: "rsp_last_distribution"
     check_sql: "SELECT count(*) > 0 FROM invesco.main.distributions('RSP')"
     success_criteria: "The answer gives RSP's most recent distribution (ex date and per-share amount) from the distributions function."
+
+  # Composes distributions (2025 payouts) with nav_history (the 2025-12-31 NAV). The agent saves its
+  # answer in a temp table; check_sql recomputes it from the worker and allows rounding to 2 dp
+  # (an error of at most 0.005).
+  # Wrong denominators (start-of-year NAV, latest NAV, fund_details.nav) miss by > 0.1 points.
+  - name: "rsp_2025_distribution_yield"
+    check_sql: >-
+      SELECT (SELECT count(*) FROM rsp_2025_yield) = 1
+      AND abs((SELECT max(yield_percent) FROM rsp_2025_yield) - (
+        SELECT 100 * (SELECT sum(amount_per_share) FROM invesco.main.distributions('RSP', start_date := DATE '2025-01-01', end_date := DATE '2025-12-31'))
+        / (SELECT nav FROM invesco.main.nav_history('RSP', start_date := DATE '2025-12-31', end_date := DATE '2025-12-31')))) < 0.006
+    success_criteria: "The answer divides RSP's summed 2025 per-share distributions by its 2025-12-31 NAV (about 1.64%) and saves it in rsp_2025_yield."

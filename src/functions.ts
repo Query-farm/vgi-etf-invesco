@@ -16,6 +16,8 @@ import {
   deserializeFilters,
   DEFAULT_MAX_WORKERS,
   type OutputCollector,
+  type PushdownFilters,
+  type VgiBatch,
 } from "@query-farm/vgi";
 import { Schema, Field, Utf8, DateDay } from "@query-farm/apache-arrow";
 import {
@@ -41,6 +43,16 @@ import {
   navHistoryBatch,
   resultColumnsSchema,
 } from "./schema.js";
+import { RSP_TTM_YIELD_VS_SEC, RSP_2025_TOTAL_RETURN } from "./examples.js";
+
+/**
+ * Keep only the rows of `batch` that satisfy every filter DuckDB pushed into a scan. A pushed
+ * filter is removed from DuckDB's own plan, so a filter-pushdown scan must apply all of them
+ * (not only the partition key it uses to pick funds) or the query returns unfiltered rows.
+ */
+export function applyPushedFilters(filters: PushdownFilters | undefined, batch: VgiBatch): VgiBatch {
+  return filters ? filters.apply(batch) : batch;
+}
 
 /** The injected HTTP getter: URL in, parsed JSON out. */
 export type InvescoGet = (url: string) => Promise<unknown>;
@@ -291,7 +303,12 @@ export function makeHoldingsScan(get: InvescoGet) {
           continue;
         }
         if (rows.length === 0) continue;
-        out.emit(holdingsBatch(schema, rows), partitionValues(fund.ticker));
+        // Every pushed filter must be honored here, not just fund_ticker: DuckDB drops the
+        // filters it pushes into the scan from its own plan, so `AND ticker = 'NVDA'` (or any
+        // other column predicate) would otherwise silently return the whole fund.
+        const batch = applyPushedFilters(p.pushdownFilters, holdingsBatch(schema, rows));
+        if (batch.numRows === 0) continue;
+        out.emit(batch, partitionValues(fund.ticker));
         return;
       }
     },
@@ -447,6 +464,7 @@ export function makeDistributionsFunction(get: InvescoGet) {
     examples: [
       { sql: "SELECT ex_date, amount_per_share FROM invesco.main.distributions('RSP') ORDER BY ex_date DESC LIMIT 8", description: "Recent RSP distributions" },
       { sql: "SELECT sum(amount_per_share) AS total FROM invesco.main.distributions('RSP', start_date := DATE '2025-01-01')", description: "Total distributions since a start date" },
+      { sql: RSP_TTM_YIELD_VS_SEC.sql, description: RSP_TTM_YIELD_VS_SEC.description },
     ],
     tags: {
       "vgi.category": "history",
@@ -464,6 +482,7 @@ export function makeDistributionsFunction(get: InvescoGet) {
       "vgi.example_queries": JSON.stringify([
         { description: "Recent RSP distributions", sql: "SELECT ex_date, amount_per_share FROM invesco.main.distributions('RSP') ORDER BY ex_date DESC LIMIT 8" },
         { description: "Total distributions since a start date", sql: "SELECT sum(amount_per_share) AS total FROM invesco.main.distributions('RSP', start_date := DATE '2025-01-01')" },
+        RSP_TTM_YIELD_VS_SEC,
       ]),
       "vgi.result_columns_schema": resultColumnsSchema(distributionsSchema(), DISTRIBUTIONS_DESCS),
     },
@@ -480,8 +499,8 @@ interface NavHistoryArgs {
 
 const NAV_RANGE_DOCS = {
   start_date:
-    "Optional inclusive lower bound on the valuation-day range — omit for the full history back " +
-    "to inception. Filters client-side.",
+    "Optional inclusive lower bound on the valuation-day range — omit for the full published " +
+    "history (about the last ten years). Filters client-side.",
   end_date:
     "Optional inclusive upper bound on the valuation-day range — omit for no upper bound. Named " +
     "end_date because END is a reserved SQL keyword.",
@@ -492,8 +511,8 @@ export function makeNavHistoryFunction(get: InvescoGet) {
   return defineTableFunction<NavHistoryArgs, DoneState>({
     name: "nav_history",
     description:
-      "Daily net-asset-value history for a fund — one row per valuation day with the NAV, back to " +
-      "inception. `fund` is a ticker; bound the valuation-date range with start_date/end_date.",
+      "Daily net-asset-value history for a fund — one row per weekday with the NAV, over the last " +
+      "~10 years. `fund` is a ticker; bound the valuation-date range with start_date/end_date.",
     args: { fund: new Utf8(), start_date: new DateDay(), end_date: new DateDay() },
     argDefaults: { start_date: null, end_date: null },
     argDocs: { fund: FUND_ARG_DOC, ...NAV_RANGE_DOCS },
@@ -520,22 +539,26 @@ export function makeNavHistoryFunction(get: InvescoGet) {
     examples: [
       { sql: "SELECT as_of_date, nav FROM invesco.main.nav_history('RSP', start_date := DATE '2025-01-01') ORDER BY as_of_date DESC", description: "Daily RSP NAV since a start date" },
       { sql: "SELECT min(nav), max(nav) FROM invesco.main.nav_history('RSP', start_date := DATE '2025-01-01', end_date := DATE '2025-12-31')", description: "NAV range over a bounded window" },
+      { sql: RSP_2025_TOTAL_RETURN.sql, description: RSP_2025_TOTAL_RETURN.description },
     ],
     tags: {
       "vgi.category": "history",
       "vgi.doc_llm":
-        "Daily NAV time series for a fund, back to inception. Each row carries the valuation date " +
-        "and the net asset value per share. Bound the range with start_date/end_date. Use it for " +
+        "Daily NAV time series for a fund over the last ~10 years (Invesco does not publish " +
+        "older NAVs), one row per weekday: the date and the net asset value per share. A weekday " +
+        "market holiday repeats the prior day's NAV. Bound the range with start_date/end_date. Use it for " +
         "NAV-based return series. This is fund NAV, not intraday candles.",
       "vgi.doc_md":
         "## nav_history\n\n" +
-        "Daily NAV history back to inception, one row per valuation day. Bound the range with " +
+        "Daily NAV history over the last ~10 years, one row per weekday (a market holiday repeats " +
+        "the prior NAV). Bound the range with " +
         "`start_date`/`end_date` (inclusive SQL `DATE`s; omit for the full history). This is " +
         "**fund NAV**, not an intraday candle series (see the example queries).",
       // example_queries carries the descriptions vgi-lint needs (native examples drop them) — VGI515.
       "vgi.example_queries": JSON.stringify([
         { description: "Daily RSP NAV since a start date", sql: "SELECT as_of_date, nav FROM invesco.main.nav_history('RSP', start_date := DATE '2025-01-01') ORDER BY as_of_date DESC" },
         { description: "NAV range over a bounded window", sql: "SELECT min(nav), max(nav) FROM invesco.main.nav_history('RSP', start_date := DATE '2025-01-01', end_date := DATE '2025-12-31')" },
+        RSP_2025_TOTAL_RETURN,
       ]),
       "vgi.result_columns_schema": resultColumnsSchema(navHistorySchema(), NAV_HISTORY_DESCS),
     },

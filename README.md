@@ -10,7 +10,7 @@ characteristics snapshot, and per-fund distribution and NAV history.
 | `invesco.holdings` (table) | Detailed current holdings, partitioned by fund_ticker | `.../shareclasses/<CUSIP>/holdings/fund` |
 | `invesco.fund_details(fund)` | Wide one-row characteristics snapshot | `keyStats` + `fundDetails` + `fundCharacteristics` + `prices` + `performance` |
 | `invesco.distributions(fund, start_date, end_date)` | Distribution (dividend / cap-gain) history | `.../shareclasses/<CUSIP>/distribution` |
-| `invesco.nav_history(fund, start_date, end_date)` | Daily NAV series back to inception | `.../shareclasses/<CUSIP>/navs` |
+| `invesco.nav_history(fund, start_date, end_date)` | Daily NAV series (last ~10 years) | `.../shareclasses/<CUSIP>/navs` |
 
 Everything rides Invesco's public JSON API on its cache CDN host (`dng-api.invesco.com`) — there
 is no secret to create and no login. Funds are identified by their exchange **ticker** (e.g.
@@ -160,6 +160,18 @@ column (each row's own constituent ticker). Invesco reports a single effective d
 `sec_type`, `currency`, plus the fixed-income-only `coupon_percent`, `maturity_date` (DATE),
 `next_call_date` (DATE), and `rating`.
 
+Joining `products` to `holdings` screens funds and looks into their holdings in one query; the
+join pushes the matching fund tickers into the holdings scan, so only those funds are fetched:
+
+```sql
+-- Which S&P 500 Equal Weight funds hold NVIDIA, and at what weight:
+SELECT p.ticker, p.name, h.weight_percent
+FROM invesco.products p
+JOIN invesco.holdings h ON h.fund_ticker = p.ticker
+WHERE p.strategy LIKE 'IDXEQ - S&P 500 Equal Weight%' AND h.ticker = 'NVDA'
+ORDER BY h.weight_percent DESC;
+```
+
 > A backing `holdings()` table function is also exposed under the same name as the table (it's what
 > the table scans, and being listed is what lets DuckDB push the `fund_ticker` filter). Called with
 > parens — `FROM invesco.holdings()` — it resolves to the scan; prefer the `holdings` table.
@@ -211,7 +223,8 @@ SELECT min(nav), max(nav)
 FROM invesco.nav_history('RSP', start_date := DATE '2025-01-01', end_date := DATE '2025-12-31');
 ```
 
-Daily NAV back to inception, one row per valuation day. `start_date`/`end_date` bound the range
+Daily NAV over the last ~10 years (Invesco publishes no older NAVs), one row per weekday — a
+weekday market holiday repeats the prior day's NAV. `start_date`/`end_date` bound the range
 (inclusive SQL `DATE`s; omit for the full history). This is **fund NAV**, not an intraday candle
 series.
 

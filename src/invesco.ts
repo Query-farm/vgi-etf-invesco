@@ -318,7 +318,7 @@ export function parseHoldings(json: unknown, fundTicker: string | null = null): 
     rows.push({
       fundTicker,
       asOfDate: asOf,
-      name: str(h.issuerName),
+      name: decodeEntities(str(h.issuerName)),
       ticker: str(h.ticker),
       cusip: str(h.cusip),
       weightPercent: num(h.percentageOfTotalNetAssets),
@@ -526,14 +526,19 @@ export async function fetchDistributions(
   return parseDistributions(await get(distributionUrl(cusip)), startSec, endSec);
 }
 
-// ── nav_history (/navs line chart, daily NAV series back to inception) ────────────
+// ── nav_history (/navs line chart, daily NAV series over the last ~10 years) ────────────
 
 export interface NavHistoryRow {
   asOfDate: number | null;
   nav: number | null;
 }
 
-/** Map a /navs envelope's NAV line-chart series, optionally bounded to [startSec, endSec]. */
+/**
+ * Map a /navs envelope's NAV line-chart series, optionally bounded to [startSec, endSec].
+ * Invesco's chart has a point for EVERY calendar day, carrying the prior NAV through weekends; a
+ * US ETF never strikes a NAV on a Saturday or Sunday, so those rows are dropped (they would
+ * otherwise show up as fake zero-return days). Weekday market holidays still repeat the prior NAV.
+ */
 export function parseNavHistory(
   json: unknown,
   startSec: number | null = null,
@@ -549,11 +554,18 @@ export function parseNavHistory(
     if (raw == null || typeof raw !== "object") continue;
     const pt = raw as Record<string, unknown>;
     const asOfDate = dateSec(pt.date);
+    if (asOfDate != null && isWeekend(asOfDate)) continue;
     if (startSec != null && (asOfDate == null || asOfDate < startSec)) continue;
     if (endSec != null && (asOfDate == null || asOfDate > endSec)) continue;
     rows.push({ asOfDate, nav: num(pt.value) });
   }
   return rows;
+}
+
+/** True when an epoch-seconds UTC-midnight calendar day is a Saturday or Sunday. */
+function isWeekend(sec: number): boolean {
+  const day = new Date(sec * 1000).getUTCDay();
+  return day === 0 || day === 6;
 }
 
 export async function fetchNavHistory(

@@ -38,6 +38,20 @@ FROM iv.holdings WHERE fund_ticker = 'RSP';
 ----
 1
 
+# Filters on non-partition columns are pushed into the scan too, and DuckDB drops them from its
+# own plan, so the scan must apply them (regression: it used to return the whole fund).
+query I
+SELECT (count(*) = 1 AND bool_and(ticker = 'NVDA'))::INT
+FROM iv.holdings WHERE fund_ticker = 'RSP' AND ticker = 'NVDA';
+----
+1
+
+query I
+SELECT (count(*) > 0 AND bool_and(weight_percent > 0.3))::INT
+FROM iv.holdings WHERE fund_ticker = 'RSP' AND weight_percent > 0.3;
+----
+1
+
 # Multiple partitions at once: fund_ticker IN (...) fans out to two funds.
 query I
 SELECT (count(DISTINCT fund_ticker) = 2)::INT FROM iv.holdings WHERE fund_ticker IN ('RSP', 'SPHQ');

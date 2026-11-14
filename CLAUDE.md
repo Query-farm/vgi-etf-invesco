@@ -49,6 +49,9 @@ streams every fund** (one partition per fund). Mechanics (mirror iShares'/vangua
 - **No `requiredFieldFilterPaths`** — a bare scan defaults to ALL funds. Pushdown still narrows it:
   `onInit` reads `deserializeFilters(...).getColumnValues("fund_ticker")` (equality/IN).
 - **`filterPushdown: true`** on `holdingsScan` + LISTED → the extension pushes the filter in.
+  DuckDB REMOVES every pushed filter from its own plan, so `process()` must apply ALL of them to
+  each fund batch (`applyPushedFilters`), not just use `fund_ticker` to pick funds — otherwise
+  `WHERE fund_ticker = 'RSP' AND ticker = 'NVDA'` returns the whole fund.
 - **NO `supportsTimeTravel`.** Invesco publishes only the current holdings for a fund (one reported
   effectiveDate), so there is no AT coordinate and the scan reads no `p.atValue`. This is the key
   intentional difference from vgi-etf-ishares. The source's effective date is surfaced as the
@@ -133,7 +136,8 @@ which is JS-app / WAF-walled). All need only the browser User-Agent + Referer:
      distributionAmountPerUnit, ordinaryIncomeDistribution, short/longTermCapitalGainsDistribution,
      returnOfCapitalDistribution}]}`. Backs `distributions` (client-side ex-date range filter).
    - `/navs` (NO variationType) → `{startDate, lineChartData:[{type:"NAV", data:[{date:"MM/DD/YYYY",
-     value}]}]}`, daily back to ~inception (10y). Backs `nav_history` (client-side date range).
+     value}]}]}`, one point per CALENDAR day (weekends carry the Friday NAV) over the last ~10y, NOT back to
+     inception. Backs `nav_history` (client-side date range; parseNavHistory drops Sat/Sun).
      UNUSED: `?variationType=nav/historical`, `?variationType=yieldInformation`, and the bare
      shareclass endpoint consistently **503** — do not use them.
 
@@ -147,7 +151,7 @@ client-side range filters; named `*_date` because `END` is reserved). The vgi ru
 arg to `p.args` as epoch MILLISECONDS; `dateArgToEpoch` converts it and is magnitude-robust
 (epoch-ms, JS Date, bigint, days-since-epoch, or a YYYY-MM-DD string). Omitted/null = unbounded.
 Invesco's per-fund URLs carry no date parameter, so this is purely a client-side filter (nav_history
-always fetches the full history back to inception and filters).
+always fetches the full ~10y history and filters).
 
 ## Fund identifier (`fund` arg)
 

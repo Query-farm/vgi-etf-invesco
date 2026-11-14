@@ -9,6 +9,12 @@
 import type { CatalogDescriptor, VgiFunction } from "@query-farm/vgi";
 import { Arguments, constraintRecord } from "@query-farm/vgi";
 import { productsSchema, holdingsSchema, resultColumnsSchema } from "./schema.js";
+import {
+  EQUAL_WEIGHT_NVDA_EXPOSURE,
+  QQQ_RSP_OVERLAP,
+  RSP_TTM_YIELD_VS_SEC,
+  RSP_2025_TOTAL_RETURN,
+} from "./examples.js";
 
 const REPO = "https://github.com/Query-farm/vgi-etf-invesco";
 const ISSUES = `${REPO}/issues`;
@@ -124,6 +130,8 @@ const HOLDINGS_TABLE_TAGS: Record<string, string> = {
     { description: "Top 10 current holdings of RSP", sql: "SELECT ticker, name, weight_percent FROM invesco.main.holdings WHERE fund_ticker = 'RSP' ORDER BY weight_percent DESC LIMIT 10" },
     { description: "Two funds at once (partition fan-out)", sql: "SELECT fund_ticker, ticker, weight_percent FROM invesco.main.holdings WHERE fund_ticker IN ('RSP', 'SPHQ')" },
     { description: "A bond fund also fills coupon / maturity / rating", sql: "SELECT name, coupon_percent, maturity_date, rating, weight_percent FROM invesco.main.holdings WHERE fund_ticker = 'BSCR' LIMIT 5" },
+    EQUAL_WEIGHT_NVDA_EXPOSURE,
+    QQQ_RSP_OVERLAP,
   ]),
 };
 
@@ -209,6 +217,14 @@ const CATALOG_TAGS: Record<string, string> = {
       name: "rsp_last_distribution",
       prompt: "When did the Invesco S&P 500 Equal Weight ETF (RSP) most recently pay a distribution, and how much?",
     },
+    {
+      name: "rsp_2025_distribution_yield",
+      prompt:
+        "What was the 2025 distribution yield of the Invesco S&P 500 Equal Weight ETF (RSP): the " +
+        "total per-share distributions with an ex-date in calendar 2025, divided by RSP's NAV on " +
+        "2025-12-31, as a percent? Save the answer as a temporary table rsp_2025_yield with one " +
+        "DOUBLE column yield_percent (percent points, e.g. 1.5 for 1.5%).",
+    },
   ]),
 };
 
@@ -241,6 +257,10 @@ const SCHEMA_TAGS: Record<string, string> = {
     { description: "Top holdings of RSP", sql: "SELECT ticker, name, weight_percent FROM invesco.main.holdings WHERE fund_ticker = 'RSP' ORDER BY weight_percent DESC LIMIT 10" },
     { description: "Recent NAV history for RSP", sql: "SELECT as_of_date, nav FROM invesco.main.nav_history('RSP', start_date := DATE '2025-01-01') ORDER BY as_of_date DESC" },
     { description: "Screen the catalog, then drill into a fund's holdings (join on fund_ticker = products.ticker)", sql: "SELECT p.ticker, p.name, p.expense_ratio_percent, h.ticker AS holding, h.weight_percent FROM invesco.main.products p JOIN invesco.main.holdings h ON h.fund_ticker = p.ticker WHERE p.ticker = 'RSP' ORDER BY h.weight_percent DESC LIMIT 10" },
+    EQUAL_WEIGHT_NVDA_EXPOSURE,
+    QQQ_RSP_OVERLAP,
+    RSP_TTM_YIELD_VS_SEC,
+    RSP_2025_TOTAL_RETURN,
   ]),
 };
 

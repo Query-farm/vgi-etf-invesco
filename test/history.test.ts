@@ -103,6 +103,24 @@ test("parseNavHistory bounds rows by date [start, end]", () => {
   expect(rows.every((r) => r.asOfDate! >= start)).toBe(true);
 });
 
+test("parseNavHistory drops the weekend points Invesco carries forward", () => {
+  const rows = parseNavHistory({
+    lineChartData: [
+      {
+        type: "NAV",
+        data: [
+          { date: "01/02/2026", value: 190.1 }, // Friday
+          { date: "01/03/2026", value: 190.1 }, // Saturday (carried forward)
+          { date: "01/04/2026", value: 190.1 }, // Sunday (carried forward)
+          { date: "01/05/2026", value: 191.2 }, // Monday
+        ],
+      },
+    ],
+  });
+  expect(rows.map((r) => r.nav)).toEqual([190.1, 191.2]);
+  expect(rows.map((r) => new Date(r.asOfDate! * 1000).getUTCDay())).toEqual([5, 1]);
+});
+
 test("parseNavHistory returns [] for an empty envelope, no throw", () => {
   expect(parseNavHistory({})).toEqual([]);
   expect(parseNavHistory({ lineChartData: [] })).toEqual([]);

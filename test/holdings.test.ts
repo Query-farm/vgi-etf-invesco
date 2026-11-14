@@ -68,6 +68,14 @@ test("parseHoldings fills coupon / maturity / call / rating for bond funds", () 
   expect(b0.secType).toBe("Corporate Bond");
 });
 
+test("parseHoldings decodes HTML entities Invesco leaves in issuer names", () => {
+  const rows = parseHoldings(
+    { holdings: [{ issuerName: "E-mini S&amp;P 500 Equal Weight Futures", percentageOfTotalNetAssets: 0.19 }] },
+    "RSP",
+  );
+  expect(rows[0]!.name).toBe("E-mini S&P 500 Equal Weight Futures");
+});
+
 test("parseHoldings returns [] for an empty/unknown envelope, no throw", () => {
   expect(parseHoldings({}, "RSP")).toEqual([]);
   expect(parseHoldings({ holdings: [] }, "RSP")).toEqual([]);
