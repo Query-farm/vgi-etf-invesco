@@ -160,8 +160,9 @@ column (each row's own constituent ticker). Invesco reports a single effective d
 `sec_type`, `currency`, plus the fixed-income-only `coupon_percent`, `maturity_date` (DATE),
 `next_call_date` (DATE), and `rating`.
 
-Joining `products` to `holdings` screens funds and looks into their holdings in one query; the
-join pushes the matching fund tickers into the holdings scan, so only those funds are fetched:
+Joining `products` to `holdings` screens funds and looks into their holdings in one query. The
+`h.ticker` filter is pushed into the holdings scan, but the join is not, so this reads every fund's
+holdings once (a `fund_ticker = ...`/`IN (...)` filter is what limits the funds fetched):
 
 ```sql
 -- Which S&P 500 Equal Weight funds hold NVIDIA, and at what weight:

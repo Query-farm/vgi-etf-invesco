@@ -11,7 +11,8 @@ export interface ExampleQuery {
 export const EQUAL_WEIGHT_NVDA_EXPOSURE: ExampleQuery = {
   description:
     "Which S&P 500 Equal Weight funds hold NVIDIA, and at what weight: screen products by strategy, " +
-    "then join each fund's holdings (the join pushes the fund tickers into the holdings scan)",
+    "then join to holdings (the ticker filter is pushed into the holdings scan; the join itself is " +
+    "not, so every fund's holdings are read once)",
   sql:
     "SELECT p.ticker, p.name, h.weight_percent FROM invesco.main.products p JOIN invesco.main.holdings h " +
     "ON h.fund_ticker = p.ticker WHERE p.strategy LIKE 'IDXEQ - S&P 500 Equal Weight%' AND h.ticker = 'NVDA' " +
