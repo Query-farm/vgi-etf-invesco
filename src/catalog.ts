@@ -285,8 +285,8 @@ export function makeCatalog(
     name: "invesco",
     defaultSchema: "main",
     comment:
-      "Invesco US ETF data as DuckDB tables: products (catalog) & holdings (fund-partitioned, " +
-      "current-only) tables, plus fund_details, distributions, nav_history — vgi-etf-invesco",
+      "Invesco US ETF data from Invesco's public product feed: screen the lineup on fund facts, " +
+      "inspect what a fund currently holds, and pull per-fund distribution and NAV history — vgi-etf-invesco",
     sourceUrl: REPO,
     tags: CATALOG_TAGS,
     schemas: [
