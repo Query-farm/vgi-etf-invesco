@@ -145,7 +145,8 @@ const CATALOG_TAGS: Record<string, string> = {
     "holds, and to pull per-fund history like distributions and NAV series. The central concept " +
     "is the fund, identified by its exchange ticker (e.g. RSP); start from the catalog to find " +
     "that key, then drill into a specific fund. Holdings are current-only (no historical as-of). " +
-    "Data is Invesco's public product feed: best-effort, for informational use.",
+    "Data is Invesco's public product feed: best-effort, for informational use." +
+    " Upstream source: https://www.invesco.com/us/en/financial-products/etfs.html.",
   "vgi.doc_md":
     "## Invesco ETFs\n\n" +
     "Invesco US ETF data, exposed as DuckDB tables and table functions.\n\n" +
@@ -153,6 +154,10 @@ const CATALOG_TAGS: Record<string, string> = {
     "at the catalog to discover that key, then drill into a fund. Fund holdings are " +
     "**current-only**: Invesco reports a single effective date per fund, so there is no historical " +
     "time travel (unlike some other providers).\n\n" +
+    "### Sources\n\n" +
+    "- [Invesco ETFs](https://www.invesco.com/us/en/financial-products/etfs.html) — the US ETF lineup and per-fund pages this data comes from.\n" +
+    "- [Invesco terms of use](https://www.invesco.com/us/en/resources/terms-of-use.html) — terms that govern use of the site's data.\n" +
+    "\n" +
     "Data is provided for informational use; review Invesco's terms before redistribution.",
   "vgi.keywords": JSON.stringify([
     "ETF",
